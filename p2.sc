@@ -1,0 +1,2 @@
+(define (truth-table phi)
+ )
