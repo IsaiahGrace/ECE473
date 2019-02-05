@@ -19,7 +19,8 @@
 
 (define (set-intersection-recurse a b)
  (cond ((null? a) a)
-       ((set-member? (first a) b) (cons (first a) (set-intersection-recurse (rest a) b)))
+       ((set-member? (first a) b)
+	(cons (first a) (set-intersection-recurse (rest a) b)))
        (else (set-intersection-recurse (rest a) b))))
  
 (define (set-intersection a b)
