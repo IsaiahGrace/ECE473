@@ -1,3 +1,9 @@
+;;; (map-reduce formula-eval (build-truth-table (get-vars phi)) phi)
+;;; Break down input string into set of propositions
+;;; construct a truth binding for the propositions (truth table)
+;;; map-reduce the truth table with formula-eval
+;;; construct the truth table
+
 ;;; We are building a satisfiability fuction
 ;;; We will return a list of rows of truth assignments
 ;;;    that cause the entire expression phi to be true
@@ -6,8 +12,12 @@
 ;;; We are only keeping track of truth-ness, maybe there is some way to limit recursion when
 ;;;    we know that there is no way to satisfy the sub-string
 (define (truth-table phi)
- (display "phi=") (write phi) (newline)
- (list (#t #t)))
+ (cond (()
+;;;(display "phi=") (write phi) (newline)
+;;; '((((p0 #f) (p1 #f)) #f)
+;;;   (((p0 #f) (p1 #t)) #f)
+;;;   (((p0 #t) (p1 #f)) #f)
+;;   (((p0 #t) (p1 #t)) #t)))
 
 ;;; The evaluate function takes a string phi in the propositional logic language
 ;;;     and a complete, non-redundant, consistant truth assignment i, and evaluates
