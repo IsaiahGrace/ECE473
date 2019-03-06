@@ -37,9 +37,22 @@
 ;;;     Compares the truth tables of Φ and Φ' and returns #t if they are the
 ;;;     same and #f if they are different.
 (define (truth-table-match? phi phi_simple)
- (display "truth-table-match? phi= ") (write phi) (display "phi_simple= ") (write phi_simple) (newline))
+ (display "truth-table-match?") (newline)
+ (display "phi= ") (write phi) (display " phi_simple= ") (write phi_simple) (newline)
+ (display "(truth-table phi)= ") (write (truth-table phi)) (newline)
+ (display "(truth-table phi_simple)= ") (write (truth-table phi_simple)) (newline)
+ 
+ (cond ((null? (first (first phi_simple))) ; First base case, phi_simple is not dependent on any variables
+ )
 
+;;; Takes two rows from two differnt truth tables and returns true if the bindings are the same for each
+;;; This mihgt not work because we don't need to find identical rows, we need to find logical equivaence...
+(define (row-binding-equal?)
+ #t)
 
+;;; Test function
+(define (test-truth-table-match?)
+ (truth-table-match? '(AND P1 (NOT P1)) '#f))
 
 ;;; Code from p2.sc
 ;;; ===========================================================================
