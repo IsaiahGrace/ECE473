@@ -1,6 +1,5 @@
 ;;; Problem set 3: Symbolic manipulation
 
-
 ;;; Impliment the following re-write rules:
 ;;;                                    (not #t) -> #f
 ;;;                                    (not #f) -> #t
@@ -32,27 +31,90 @@
 (define (boolean-simplify phi)
  (display "boolean-simplify phi=") (write phi) (newline))
 
+
 ;;; truth-tables-match? Φ Φ'
 ;;; Φ and Φ' are formulas. Φ' will be the result of (boolean-simplify Φ).
 ;;;     Compares the truth tables of Φ and Φ' and returns #t if they are the
 ;;;     same and #f if they are different.
-(define (truth-table-match? phi phi_simple)
- (display "truth-table-match?") (newline)
- (display "phi= ") (write phi) (display " phi_simple= ") (write phi_simple) (newline)
- (display "(truth-table phi)= ") (write (truth-table phi)) (newline)
- (display "(truth-table phi_simple)= ") (write (truth-table phi_simple)) (newline)
- 
- (cond ((null? (first (first phi_simple))) ; First base case, phi_simple is not dependent on any variables
- )
+(define (truth-tables-match? phi phi-simple)
+ (display "truth-tables-match?") (newline)
+ (display "phi= ") (write phi) (display " phi-simple= ") (write phi-simple) (newline)
+ (cond ((truth-table-tautology? (truth-table phi))
+	(if (eq? phi-simple #t) #t #f)) ; phi is a tautology, so phi-simple should just be #t
+       ((truth-table-contradiction? (truth-table phi)) 
+	(if (eq? phi-simple #f) #t #f)) ; phi is a contradiction, so phi-simple should just be #f
+       ;; phi is not a tautology nor a contradiction, phi-simple not just a boolean
+       (else (truth-tables-equivalent? (truth-table phi) (truth-table phi-simple)))))
 
-;;; Takes two rows from two differnt truth tables and returns true if the bindings are the same for each
-;;; This mihgt not work because we don't need to find identical rows, we need to find logical equivaence...
-(define (row-binding-equal?)
- #t)
 
-;;; Test function
-(define (test-truth-table-match?)
- (truth-table-match? '(AND P1 (NOT P1)) '#f))
+(define (test-truth-tables-match?)
+ (let ((phi '(AND P1 P2)))
+  (let ((phi-simple '(AND P2 P1)))
+   (display "phi") (newline)
+   (print-truth-table (truth-table phi)) (newline)
+   (display "phi-simple") (newline)
+   (print-truth-table (truth-table phi-simple)) (newline)
+   (display "truth-tables-match?" (truth-tables-match? phi phi-simple)) (newline))))
+
+;;; Takes two truth tables and returns true if they are logically equivalent, otherwise #f.
+;;; Table-simple must contain variables that are a subset of table
+;;; The variables in phi-simple are a subset of the variables in phi.
+;;; So if we look at one row of phi-simple and search for the variables in phi,
+;;; then we are guaranteed to find at least one row of phi that matches phi-simple.
+(define (truth-tables-equivalent? table table-simple)
+ (cond ((null? table-simple) #t)
+       ((row-equivelence? (first table-simple) (get-matching-rows table (first table-simple) '()))
+	(truth-tables-equivalent? table (rest table-simple)))
+       (else #f)))
+
+;;; returns a list of all rows in table that have the same logic assignments as row
+;;; note: table may have more variables than row. This is because some varaibles might be
+;;; reduced out of our formula by boolean-simplify
+(define (get-matching-rows table row matching-rows)
+ (display "get-matching-rows") (newline)
+ (display "row= ") (write row) (newline)
+ (display "table: ") (newline)
+ (print-truth-table table)
+ (display "matching-rows ") (write matching-rows) (newline) 
+ (cond ((null? table) matching-rows)
+       (else ((row-match? row (first (first table)))
+	      (get-matching-rows (rest table) row (append matching-rows (list (first table))))
+	      (get-matching-rows (rest table) row matching-rows)))))
+       
+
+;;; returns true if the truth assignments in row1 are a subset of the truth assignments in row2
+(define (row-match? row1 row2)
+ (cond ((null? row1) #t)
+       ((null? row2) #f) ; this is because row1 is NOT null, so if row2 is null, than row1 is not a subset of row2
+       ((equal? (first row1) (first row2)) (row-match row1 (rest row2)))
+       (else (row-match? (rest row1) row2))))
+	
+	
+;;; returns true if every truth value in row-list is the same as the truth value of row
+(define (row-equivelence? row row-list)
+ (cond ((null? row-list) #t)
+       ((eq? (second row) (second (first row-list)))
+	(row-equivelence? row (rest row-list)))
+       (else #f)))
+
+;;; Takes a truth table and returns true if the formula is a tautology (always true)
+(define (truth-table-tautology? table)
+ ;(display "truth-table-tautology? ") (write table) (newline)
+ (cond ((null? table) #t)
+       ((eq? (second (first table)) #t) (truth-table-tautology? (rest table)))
+       (else #f)))
+
+;;; Takes a truth table and returns true if the formula is a contradiction (always false)
+(define (truth-table-contradiction? table)
+ ;(display "truth-table-contradiction? ") (write table) (newline)
+ (cond ((null? table) #t)
+       ((eq? (second (first table)) #f) (truth-table-contradiction? (rest table)))
+       (else #f)))
+
+;;; Helper function that prints out a nicely formatted truth table
+(define (print-truth-table truth-table)
+ (cond ((null? truth-table) '())
+       (else (write (first truth-table)) (newline) (print-truth-table (rest truth-table)))))
 
 ;;; Code from p2.sc
 ;;; ===========================================================================
