@@ -1,11 +1,11 @@
 ;;; Problem set 3: Symbolic manipulation
 
 ;;; Impliment the following re-write rules:
-;;;                                    (not #t) -> #f
-;;;                                    (not #f) -> #t
-;;;                                (not (notΦ)) -> Φ
+;;;                                    (not #t) -> #f                                              (good)
+;;;                                    (not #f) -> #t                                              (good)
+;;;                                (not (notΦ)) -> Φ                                               (good)
 
-;;;                                       (and) -> #t
+;;;                                       (and) -> #t                                              (good)
 ;;;                                     (and Φ) -> Φ
 ;;;                  (and Φ1...Φm #t Φm+1...Φn) -> (andΦ1...Φm Φm+1...Φn)
 ;;;                  (and Φ1...Φm #f Φm+1...Φn) -> #f
@@ -29,7 +29,71 @@
 ;;;     subformulas until no more rules are applicable and then returns the
 ;;;     resulting formula
 (define (boolean-simplify phi)
- (display "boolean-simplify phi=") (write phi) (newline))
+ (display "boolean-simplify, phi= ") (write phi) (newline)
+ (cond ((null? phi) '())
+       ((symbol? phi) phi)
+       ((and (or (eq? (first phi) 'AND)
+		 (eq? (first phi) 'OR)
+		 (eq? (first phi) 'NOT))     
+	     (truth-table-tautology? (truth-table phi))) #t)
+       ((and (or (eq? (first phi) 'AND)
+		 (eq? (first phi) 'OR)
+		 (eq? (first phi) 'NOT))
+	     (truth-table-contradiction? (truth-table phi))) #f)
+       ((= (length phi) 1) (boolean-simplify (first phi)))
+       ((eq? (first phi) 'AND)
+	(append (list (first phi))
+		(boolean-simplify
+		 (if (symbol? (rest phi)) (rest phi) (set-create (expand-and (rest phi)))))))
+       ((eq? (first phi) 'OR)
+	(append (list (first phi))
+		(boolean-simplify
+		 (if (symbol? (rest phi)) (rest phi) (set-create (expand-or (rest phi)))))))
+       ((eq? (first phi) 'NOT)
+	(if (and (list? (second phi)) (eq? (first (second phi)) 'NOT))
+	    (boolean-simplify (second (second phi)))
+	    (cons (first phi (boolean-simplify (rest phi))))))
+       ((list? phi) (list (first phi) (boolean-simplify (rest phi))))
+       (else (panic "need more inductive cases"))))
+
+(define (test-boolean-simplify)
+ ;; PASSING
+ ;; '(NOT #t)
+ ;; '(NOT #f)
+ ;; '(NOT (NOT (AND P1 P2)))
+ ;; '(NOT (NOT P1))
+ ;; '(and)
+ ;; FAILING
+
+ ;; '(OR P1 P2 P3 (AND P4 P5 P2 P4) P3 P1 (OR P3 P4) (AND P2 (AND P3 (NOT P4))))))
+ (let ((phi '(AND P1)))
+  (print-truth-table (truth-table phi))
+  (boolean-simplify phi)))
+
+;;; Takes a list of propositions and if one of them is a list with first element AND, expands it out
+(define (expand-and phi)
+					;(display "expand-and, phi= ") (write phi) (newline)
+ (cond ((null? phi) '())
+       ((symbol? phi) phi)
+       ((and (list? (first phi)) (eq? (first (first phi)) 'AND))
+	(expand-and (append (rest (first phi)) (rest phi))))
+       (else (cons (first phi) (expand-and (rest phi))))))
+
+(define (test-expand-and)
+ ;;'(P1 P2 P3 (AND P4 P5 P2 P4) P3 P1 (OR P3 P4) (NOT P1) (AND P2 (AND P3 P4)))))
+ (expand-and '((AND P2 (AND P3 (NOT P4))))))
+
+;;; Takes a list of propositions and if one of them is a list with first element OR, expands it out
+(define (expand-or phi)
+					;(display "expand-or, phi= ") (write phi) (newline)
+ (cond ((null? phi) '())
+       ((symbol? phi) phi)
+       ((and (list? (first phi)) (eq? (first (first phi)) 'OR))
+	(expand-or (append (rest (first phi)) (rest phi))))
+       (else (cons (first phi) (expand-or (rest phi))))))
+
+(define (test-expand-or)
+ (expand-or '(P1 P2 P3 (OR P4 P5 P2 P4) P3 P1 (AND P3 P4) (NOT P1) (OR P2 (OR P3 P4)))))
 
 
 ;;; truth-tables-match? Φ Φ'
@@ -37,8 +101,8 @@
 ;;;     Compares the truth tables of Φ and Φ' and returns #t if they are the
 ;;;     same and #f if they are different.
 (define (truth-tables-match? phi phi-simple)
- (display "truth-tables-match?") (newline)
- (display "phi= ") (write phi) (display " phi-simple= ") (write phi-simple) (newline)
+					;(display "truth-tables-match?") (newline)
+					;(display "phi= ") (write phi) (display " phi-simple= ") (write phi-simple) (newline)
  (cond ((truth-table-tautology? (truth-table phi))
 	(if (eq? phi-simple #t) #t #f)) ; phi is a tautology, so phi-simple should just be #t
        ((truth-table-contradiction? (truth-table phi)) 
@@ -48,13 +112,13 @@
 
 
 (define (test-truth-tables-match?)
- (let ((phi '(AND P1 P2)))
-  (let ((phi-simple '(AND P2 P1)))
+ (let ((phi '(OR P1 (NOT P2) (AND P3 (NOT P3)))))
+  (let ((phi-simple '(NOT (AND P2 (NOT P1)))))
    (display "phi") (newline)
    (print-truth-table (truth-table phi)) (newline)
    (display "phi-simple") (newline)
    (print-truth-table (truth-table phi-simple)) (newline)
-   (display "truth-tables-match?" (truth-tables-match? phi phi-simple)) (newline))))
+   (truth-tables-match? phi phi-simple))))
 
 ;;; Takes two truth tables and returns true if they are logically equivalent, otherwise #f.
 ;;; Table-simple must contain variables that are a subset of table
@@ -71,24 +135,25 @@
 ;;; note: table may have more variables than row. This is because some varaibles might be
 ;;; reduced out of our formula by boolean-simplify
 (define (get-matching-rows table row matching-rows)
- (display "get-matching-rows") (newline)
- (display "row= ") (write row) (newline)
- (display "table: ") (newline)
- (print-truth-table table)
- (display "matching-rows ") (write matching-rows) (newline) 
+					;(display "get-matching-rows") (newline)
+					;(display "row= ") (write row) (newline)
+					;(display "table: ") (newline)
+					;(print-truth-table table)
+					;(display "matching-rows ") (write matching-rows) (newline) 
  (cond ((null? table) matching-rows)
-       (else ((row-match? row (first (first table)))
-	      (get-matching-rows (rest table) row (append matching-rows (list (first table))))
-	      (get-matching-rows (rest table) row matching-rows)))))
+       ((row-match? (first row) (first (first table)))
+	(get-matching-rows (rest table) row (append matching-rows (list (first table)))))
+       (else (get-matching-rows (rest table) row matching-rows))))
        
 
 ;;; returns true if the truth assignments in row1 are a subset of the truth assignments in row2
 (define (row-match? row1 row2)
+					;(newline) (display "row-match?") (newline)
+					;(display "row1= ") (write row1) (newline)
+					;(display "row2= ") (write row2) (newline)
  (cond ((null? row1) #t)
-       ((null? row2) #f) ; this is because row1 is NOT null, so if row2 is null, than row1 is not a subset of row2
-       ((equal? (first row1) (first row2)) (row-match row1 (rest row2)))
-       (else (row-match? (rest row1) row2))))
-	
+       ((set-member? (first row1) row2) (row-match? (rest row1) row2))
+       (else #f)))
 	
 ;;; returns true if every truth value in row-list is the same as the truth value of row
 (define (row-equivelence? row row-list)
@@ -99,14 +164,14 @@
 
 ;;; Takes a truth table and returns true if the formula is a tautology (always true)
 (define (truth-table-tautology? table)
- ;(display "truth-table-tautology? ") (write table) (newline)
+					;(display "truth-table-tautology? ") (write table) (newline)
  (cond ((null? table) #t)
        ((eq? (second (first table)) #t) (truth-table-tautology? (rest table)))
        (else #f)))
 
 ;;; Takes a truth table and returns true if the formula is a contradiction (always false)
 (define (truth-table-contradiction? table)
- ;(display "truth-table-contradiction? ") (write table) (newline)
+					;(display "truth-table-contradiction? ") (write table) (newline)
  (cond ((null? table) #t)
        ((eq? (second (first table)) #f) (truth-table-contradiction? (rest table)))
        (else #f)))
@@ -181,10 +246,36 @@
 (define (set-member? e s)
  (cond ((null? s) #f)
        ((null? e) #f)
-       ((eq? (first s) e) #t)
+       ((equal? (first s) e) #t)
        (else (set-member? e (rest s)))))
 
 (define (set-create s)
  (cond ((null? s) s)
        ((set-member? (first s) (rest s)) (set-create (rest s)))
        (else (cons (first s) (set-create (rest s))))))
+
+(define (set-union-recurse a b)
+ (cond ((null? a) b)
+       ((set-member? (first a) b) (set-union-recurse (rest a) b))
+       (else (set-union-recurse (rest a) (cons (first a) b)))))
+
+(define (set-union a b)
+ (set-union-recurse (set-create a) (set-create b)))
+
+(define (set-intersection-recurse a b)
+ (cond ((null? a) a)
+       ((set-member? (first a) b)
+	(cons (first a) (set-intersection-recurse (rest a) b)))
+       (else (set-intersection-recurse (rest a) b))))
+ 
+(define (set-intersection a b)
+ (set-intersection-recurse (set-create a) (set-create b)))
+
+(define (set-minus-recurse a b)
+ (cond ((null? a ) a)
+       ((set-member? (first a) b) (set-minus-recurse (rest a) b))
+       (else (cons (first a) (set-minus-recurse (rest a) b)))))
+       
+(define (set-minus a b)
+ (set-minus-recurse (set-create a) (set-create b)))
+
