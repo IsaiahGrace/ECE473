@@ -1,27 +1,25 @@
 ;;; Problem set 3: Symbolic manipulation
 
-;;; Impliment the following re-write rules:
+;;; Impliment the following re-write rules:                                                       (status)
 ;;;                                    (not #t) -> #f                                              (good)
 ;;;                                    (not #f) -> #t                                              (good)
 ;;;                                (not (notΦ)) -> Φ                                               (good)
-
 ;;;                                       (and) -> #t                                              (good)
-;;;                                     (and Φ) -> Φ
+;;;                                     (and Φ) -> Φ                                               (good)
 ;;;                  (and Φ1...Φm #t Φm+1...Φn) -> (andΦ1...Φm Φm+1...Φn)
-;;;                  (and Φ1...Φm #f Φm+1...Φn) -> #f
+;;;                  (and Φ1...Φm #f Φm+1...Φn) -> #f                                              (good)
 ;;;     (and Φ1...Φl (and Φl+1...Φm) Φm+1...Φn) -> (andΦ1...Φl Φl+1...Φm Φm+1...Φn)
 ;;;       (and Φ1...Φl Φ Φl+1...Φm Φ Φm+1...Φn) -> (and Φ1...Φl Φ Φl+1...Φm Φm+1...Φn)
-;;; (and Φ1...Φl (not Φ) Φl+1...Φm Φ Φm+1...Φn) -> #f
-;;; (and Φ1...Φl Φ Φl+1...Φm (not Φ) Φm+1...Φn) -> #f
-
-;;;                                        (or) -> #f
-;;;                                      (or Φ) -> Φ
+;;; (and Φ1...Φl (not Φ) Φl+1...Φm Φ Φm+1...Φn) -> #f                                              (good)
+;;; (and Φ1...Φl Φ Φl+1...Φm (not Φ) Φm+1...Φn) -> #f                                              (good)
+;;;                                        (or) -> #f                                              (good)
+;;;                                      (or Φ) -> Φ                                               (good)
 ;;;                   (or Φ1...Φm #f Φm+1...Φn) -> (or Φ1...Φm Φm+1...Φn)
-;;;                   (or Φ1...Φm #t Φm+1...Φn) -> #t
+;;;                   (or Φ1...Φm #t Φm+1...Φn) -> #t                                              (good)
 ;;;       (or Φ1...Φl (or Φl+1...Φm) Φm+1...Φn) -> (or Φ1...Φl Φl+1...Φm Φm+1...Φn)
 ;;;        (or Φ1...Φl Φ Φl+1...Φm Φ Φm+1...Φn) -> (or Φ1...Φl Φ Φl+1...Φm Φm+1...Φn)
-;;;  (or Φ1...Φl (not Φ) Φl+1...Φm Φ Φm+1...Φn) -> #t
-;;;   (or Φ1...Φl Φ Φl+1...Φm (notΦ) Φm+1...Φn) -> #t
+;;;  (or Φ1...Φl (not Φ) Φl+1...Φm Φ Φm+1...Φn) -> #t                                              (good)
+;;;   (or Φ1...Φl Φ Φl+1...Φm (notΦ) Φm+1...Φn) -> #t                                              (good)
 
 
 ;;; boolean-simplify Φ
@@ -32,23 +30,21 @@
  (display "boolean-simplify, phi= ") (write phi) (newline)
  (cond ((null? phi) '())
        ((symbol? phi) phi)
-       ((and (or (eq? (first phi) 'AND)
-		 (eq? (first phi) 'OR)
-		 (eq? (first phi) 'NOT))     
+       ((and (valid-formula? phi)
 	     (truth-table-tautology? (truth-table phi))) #t)
-       ((and (or (eq? (first phi) 'AND)
-		 (eq? (first phi) 'OR)
-		 (eq? (first phi) 'NOT))
+       ((and (valid-formula? phi)
 	     (truth-table-contradiction? (truth-table phi))) #f)
        ((= (length phi) 1) (boolean-simplify (first phi)))
        ((eq? (first phi) 'AND)
-	(append (list (first phi))
-		(boolean-simplify
-		 (if (symbol? (rest phi)) (rest phi) (set-create (expand-and (rest phi)))))))
+	(if (= (length (rest phi)) 1)
+	    (second phi)
+	    (append (list (first phi))
+		    (boolean-simplify (set-create (expand-and (rest phi)))))))
        ((eq? (first phi) 'OR)
-	(append (list (first phi))
-		(boolean-simplify
-		 (if (symbol? (rest phi)) (rest phi) (set-create (expand-or (rest phi)))))))
+	(if (= (length (rest phi)) 1)
+	    (second phi)
+	    (append (list (first phi))
+		    (boolean-simplify (set-create (expand-or (rest phi)))))))
        ((eq? (first phi) 'NOT)
 	(if (and (list? (second phi)) (eq? (first (second phi)) 'NOT))
 	    (boolean-simplify (second (second phi)))
@@ -63,10 +59,24 @@
  ;; '(NOT (NOT (AND P1 P2)))
  ;; '(NOT (NOT P1))
  ;; '(and)
+ ;; '(AND P1)
+ ;; '(AND (NOT (OR P1 P2)))
+ ;;
+ ;; '(AND P1 P2 P1 P4 #f P7)
+ ;; '(AND P2 (NOT P1) P4 P1 P7)
+ 
+ ;; '(OR)
+ ;; '(OR (NOT (AND P1 P2)))
+ ;;
+ ;; '(OR P1 P2 P1 P4 #t P7)
+ ;;
+ ;; '(OR P2 (NOT P1) P4 P1 P7)
+ ;; '(OR P1 P2 (NOT P1) P4 P7)
+ 
  ;; FAILING
 
  ;; '(OR P1 P2 P3 (AND P4 P5 P2 P4) P3 P1 (OR P3 P4) (AND P2 (AND P3 (NOT P4))))))
- (let ((phi '(AND P1)))
+ (let ((phi '(AND P2 (NOT P1) P4 P1 P7)))
   (print-truth-table (truth-table phi))
   (boolean-simplify phi)))
 
@@ -94,6 +104,12 @@
 
 (define (test-expand-or)
  (expand-or '(P1 P2 P3 (OR P4 P5 P2 P4) P3 P1 (AND P3 P4) (NOT P1) (OR P2 (OR P3 P4)))))
+
+;; Just tests weather phi is safe to send to the truth-table function
+(define (valid-formula? phi)
+ (or (eq? (first phi) 'AND)
+     (eq? (first phi) 'OR)
+     (eq? (first phi) 'NOT)))
 
 
 ;;; truth-tables-match? Φ Φ'
