@@ -6,22 +6,43 @@
 ;;; Tic Tac Toe is played on an n × n board. The two players are X and O.
 ;;; Players alternate turns with player X playing first. The board is initially empty.
 ;;; At each turn, a player marks an empty square with his or her identity (i.e. X or O).
-;;; The first player to mark n squares in a row (horizontally, vertically, or diagonally)
-;;; with his or her mark wins.
+;;; The first player to mark n squares in a row (horizontally, vertically, or diagonally) with his or her mark wins.
 ;;; We will represent player X as 1 and player O as −1. We will represent an n × n board as a list of n rows,
 ;;; from top to bottom. We will represent a row of an n × n board as a list of n positions, from left to right.
-;;; Each position will be 1, indicating a mark by player X, −1, indicating a mark by player O,
-;;; or 0 indicating an empty position.
+;;; Each position will be:
+;;;                       1, indicating a mark by player X,
+;;;                      −1, indicating a mark by player O,
+;;;                       0, indicating an empty position.
+
+;; prints out the board
+(define (print-board board)
+ (cond ((null? board) #t)
+       (else
+	(write (first board)) (newline)
+	(print-board (rest board)))))
 
 ;;; initial-board n
 ;;; n is a positive integer. Returns b^0 , the initially empty n × n Tic Tac Toe board.
 (define (initial-board n)
- '())
+ (map (lambda (z)
+       (zeros n))
+      (zeros n)))
 
+(define (zeros n)
+ (cond ((zero? n) '())
+       (else (cons 0 (initial-row (- n 1))))))
+
+(define (test-initial-board)
+ (print-board (initial-board 3)))
+  
 ;;; moves b
 ;;; b is a board. Returns m(b), the set (represented as a list) of legal moves for player p(b) in board b.
 ;;; You can choose whatever representation you wish for moves so long as it is accepted by make-move
 ;;; and produced by optimal-moves~.
+;;; Each legal move is represented as a game board where ONE square is replaced with #t where a legal move is possible
+;;; ( 0  1 -1)
+;;; (#t -1  1)
+;;; ( 0  1  0)
 (define (moves b)
  '())
 
