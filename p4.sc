@@ -44,7 +44,18 @@
 ;;; (#t -1  1)
 ;;; ( 0  1  0)
 (define (moves b)
+ (moves-recurse b (length b) (length (first b))))
+
+(define (moves-recurse b row col)
+ (cond ((zero? row) '())
+       ((zero? col) (moves-recurse b (- row 1) (length b)))
+       (else (cons (replace-zero-at b row col) (moves-recurse row (- col 1))))))
+
+(define (replace-zero-at b row col)
  '())
+
+(define (test-replace-zero-at b row col)
+ (replace-zero-at (initial-board 3) 2 1))
 
 ;;; make-move m b
 ;;; m is a move. b is a board. Returns b 0 (m, b), the board that results when player p(b) takes move m in board b.
