@@ -16,7 +16,7 @@
 
 ;; prints out the board
 (define (print-board board)
- (cond ((null? board) #t)
+ (cond ((null? board) (newline) #t)
        (else
 	(write (first board)) (newline)
 	(print-board (rest board)))))
@@ -44,18 +44,27 @@
 ;;; (#t -1  1)
 ;;; ( 0  1  0)
 (define (moves b)
- (print-board (moves-recurse b (- (length b) 1) (- (length (first b)) 1))))
+ (moves-recurse b (- (length b) 1) (- (length (first b)) 1)))
 
 (define (test-moves)
- (moves '(( 0  1 -1)
-	  ( 0 -1  1)
-	  ( 0  1  0))))
+ (map print-board (moves '(( 0  1 -1)
+			   ( 0 -1  1)
+			   ( 0  1  0)))))
 
 (define (moves-recurse b row col)
  ;;(display "moves-recurse") (write b) (write row) (write col) (newline)
- (cond ((and (zero? row) (zero? col)) '())
-       ((zero? col) (cons (replace-zero-row-col b row col) (moves-recurse b (- row 1) (- (length b) 1))))
-       (else (cons (replace-zero-row-col b row col) (moves-recurse b row (- col 1))))))
+ (let ((new-board (replace-zero-row-col b row col)))
+  (cond ((map-reduce (lambda (a b) (or a b))
+		    #f
+		    (lambda (row) (not (eq? (length row) 3)))
+		    new-board)
+	 (cond
+	  ((and (zero? row) (zero? col)) '())
+	  ((zero? col) (moves-recurse b (- row 1) (- (length b) 1)))
+	  (else (moves-recurse b row (- col 1)))))
+	((and (zero? row) (zero? col)) (list new-board))
+	((zero? col) (cons new-board (moves-recurse b (- row 1) (- (length b) 1))))
+	(else (cons new-board (moves-recurse b row (- col 1)))))))
 
 ;;; Tries to replace a zero at position with #f (row, col), otherwise return the empty list.
 (define (replace-zero-row-col b row col)
@@ -67,14 +76,6 @@
 	  (cons new-row (rest b))
 	  (cons (first b) (replace-zero-row-col (rest b) (- row 1) col))))))
 
- 
-;;(cond ((zero? row)
-;;(let ((new-row (replace-zero-col (first b) col)))
-;;(if (null? new-row)
-;;'()
-;;(cons new-row (rest b)))))
-;;(else (cons (first b) (replace-zero-row-col (rest b) (- row 1) col)))))
-
 (define (replace-zero-col r col)
  ;;(display "replace-zero-col") (write r) (write col) (newline)
  (cond ((null? r) '())
@@ -83,25 +84,6 @@
  
 ;;;(cond ((and (zero? row) (zero? col)) (cons (if (zero? (first (first b))) #t (first (first (b))))
 ;;;					    (replace-zero-at b (
-
-(define (test-replace-zero-row-col)
- (print-board (replace-zero-row-col (initial-board 3) 0 0))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 0 1))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 0 2))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 1 0))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 1 1))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 1 2))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 2 0))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 2 1))
- (newline)
- (print-board (replace-zero-row-col (initial-board 3) 2 2))) 
 
 ;;; make-move m b
 ;;; m is a move. b is a board. Returns b 0 (m, b), the board that results when player p(b) takes move m in board b.
